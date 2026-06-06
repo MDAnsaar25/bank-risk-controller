@@ -1,0 +1,38 @@
+# Core
+pandas
+numpy
+scikit-learn
+
+# Imbalance handling
+imbalanced-learn
+
+# Gradient boosting
+xgboost
+lightgbm
+
+# Plotting
+matplotlib
+seaborn
+plotly
+
+# Streamlit app
+streamlit
+
+# NLP & Deep Learning
+nltk
+tensorflow
+
+# Object detection (YOLO)
+ultralytics
+opencv-python
+pillow
+
+# GenAI chatbot (RAG)
+langchain
+langchain-community
+faiss-cpu
+sentence-transformers
+pypdf
+
+# Utilities
+joblib
