@@ -1,0 +1,20 @@
+# Virtual env
+venv/
+*.env
+
+# Python
+__pycache__/
+*.pyc
+
+# Data (often too large for Git)
+data/raw/
+data/processed/
+
+# Models (large binaries)
+models/*.pkl
+models/*.h5
+
+# OS / IDE
+.DS_Store
+.ipynb_checkpoints/
+.vscode/
