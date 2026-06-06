@@ -43,7 +43,7 @@ def load_model_bundle():
 st.sidebar.title("Bank Risk Controller")
 page = st.sidebar.radio(
     "Navigate",
-    ["Data", "EDA - Visual", "Prediction"],
+    ["Data", "EDA - Visual", "Prediction", "Object Detection"],
 )
 
 
@@ -208,3 +208,39 @@ elif page == "Prediction":
             st.success(f"✅ Predicted: NO DEFAULT  (risk probability: {proba:.1%})")
         st.caption(f"Decision threshold: {bundle['threshold']:.2f} "
                    f"(tuned for best F1 on imbalanced data)")
+
+# ====================================================
+# TAB: OBJECT DETECTION (Human Detection)
+# ====================================================
+elif page == "Object Detection":
+    import sys, os
+    sys.path.append(os.path.join(os.path.dirname(__file__), "..", "src"))
+    from object_detection import detect_humans
+
+    st.title("👤 Human Detection (YOLOv8)")
+    st.write("Upload an image — the model detects and counts only people.")
+
+    conf = st.slider("Confidence threshold", 0.1, 0.9, 0.4, 0.05)
+    uploaded = st.file_uploader("Upload an image",
+                                type=["jpg", "jpeg", "png"])
+
+    if uploaded is not None:
+        from PIL import Image
+        image = Image.open(uploaded).convert("RGB")
+
+        col1, col2 = st.columns(2)
+        with col1:
+            st.subheader("Original")
+            st.image(image, use_container_width=True)
+
+        with st.spinner("Detecting people..."):
+            annotated, n = detect_humans(image, conf=conf)
+
+        with col2:
+            st.subheader("Detected")
+            st.image(annotated, use_container_width=True)
+
+        if n > 0:
+            st.success(f"✅ Detected {n} person(s) in the image.")
+        else:
+            st.warning("No people detected. Try lowering the confidence threshold.")
