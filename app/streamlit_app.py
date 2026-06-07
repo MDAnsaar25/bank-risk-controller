@@ -43,7 +43,7 @@ def load_model_bundle():
 st.sidebar.title("Bank Risk Controller")
 page = st.sidebar.radio(
     "Navigate",
-    ["Data", "EDA - Visual", "Prediction", "Object Detection", "NLP"],
+    ["Data", "EDA - Visual", "Prediction", "Object Detection", "NLP", "Chat - GenAI"],
 )
 
 
@@ -287,3 +287,77 @@ elif page == "NLP":
         with st.spinner("Generating..."):
             out = predict_next_words(seed, n_words)
         st.success(out)
+# ====================================================
+# TAB: CHAT - GenAI
+# ====================================================
+elif page == "Chat - GenAI":
+    import sys, os
+    sys.path.append(os.path.join(os.path.dirname(__file__), "..", "src"))
+    import chatbot
+
+    st.title("💬 Bank Customer Support Chatbot")
+    st.write("Ask questions about the bank's policy documents.")
+
+    api_key = st.text_input("Groq API Key", type="password",
+                            help="Get a free key at console.groq.com")
+    if not api_key:
+        st.info("Enter your Groq API key to start. Free at console.groq.com.")
+        st.stop()
+
+    col1, col2 = st.columns([1, 2])
+    with col1:
+        if st.button("Build / Rebuild Document Index"):
+            with st.spinner("Reading PDFs and building index..."):
+                try:
+                    n_pdf, n_chunks = chatbot.build_index()
+                    st.success(f"Indexed {n_pdf} PDF(s), {n_chunks} chunks.")
+                except (FileNotFoundError, ValueError) as e:
+                    st.error(str(e))
+    with col2:
+        models = chatbot.list_groq_models(api_key)
+        default_idx = (models.index("llama-3.3-70b-versatile")
+                       if "llama-3.3-70b-versatile" in models else 0)
+        model = st.selectbox("Model", models, index=default_idx)
+
+    if not chatbot.index_exists():
+        st.warning("Build the document index first (button above).")
+        st.stop()
+
+    st.divider()
+
+    # ---- chat history in session state ----
+    if "chat_msgs" not in st.session_state:
+        st.session_state.chat_msgs = []
+
+    # render past messages
+    for m in st.session_state.chat_msgs:
+        with st.chat_message(m["role"]):
+            st.markdown(m["content"])
+
+    if prompt := st.chat_input("Ask about loans, eligibility, documents..."):
+        st.session_state.chat_msgs.append({"role": "user", "content": prompt})
+        with st.chat_message("user"):
+            st.markdown(prompt)
+
+        with st.chat_message("assistant"):
+            with st.spinner("Thinking..."):
+                try:
+                    ans, sources = chatbot.answer(
+                        prompt, api_key, model,
+                        history=st.session_state.chat_msgs[:-1])
+                    st.markdown(ans)
+                    with st.expander("Sources used"):
+                        for i, s in enumerate(sources, 1):
+                            src = s.metadata.get("source_file", "doc")
+                            pg = s.metadata.get("page", "?")
+                            st.caption(f"**{i}. {src} (page {pg})**")
+                            st.text(s.page_content[:350] + "...")
+                    st.session_state.chat_msgs.append(
+                        {"role": "assistant", "content": ans})
+                except Exception as e:
+                    st.error(f"Error: {e}")
+
+    if st.session_state.chat_msgs:
+        if st.button("Clear chat"):
+            st.session_state.chat_msgs = []
+            st.rerun()
