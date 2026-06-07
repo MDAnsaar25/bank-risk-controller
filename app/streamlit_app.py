@@ -43,7 +43,7 @@ def load_model_bundle():
 st.sidebar.title("Bank Risk Controller")
 page = st.sidebar.radio(
     "Navigate",
-    ["Data", "EDA - Visual", "Prediction", "Object Detection"],
+    ["Data", "EDA - Visual", "Prediction", "Object Detection", "NLP"],
 )
 
 
@@ -244,3 +244,46 @@ elif page == "Object Detection":
             st.success(f"✅ Detected {n} person(s) in the image.")
         else:
             st.warning("No people detected. Try lowering the confidence threshold.")
+
+# ====================================================
+# TAB: NLP
+# ====================================================
+elif page == "NLP":
+    import sys, os
+    sys.path.append(os.path.join(os.path.dirname(__file__), "..", "src"))
+    from nlp_module import preprocess, sentiment, predict_next_words
+
+    st.title("📝 NLP Analysis")
+    user_text = st.text_area("Enter text:",
+                             "I am very happy with the excellent loan service.",
+                             height=120)
+
+    if st.button("Analyze", type="primary"):
+        # 1. Preprocessing
+        st.subheader("1. Text Preprocessing")
+        steps = preprocess(user_text)
+        st.write("**Tokens:**", steps["tokens"])
+        st.write("**Without stopwords:**", steps["without_stopwords"])
+
+        # 2. Sentiment
+        st.subheader("2. Sentiment Analysis")
+        s = sentiment(user_text)
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Sentiment", s["label"])
+        c2.metric("Polarity", f"{s['polarity']:.2f}")
+        c3.metric("Subjectivity", f"{s['subjectivity']:.2f}")
+
+        fig = px.bar(x=["Polarity", "Subjectivity"],
+                     y=[s["polarity"], s["subjectivity"]],
+                     range_y=[-1, 1], title="Sentiment Scores",
+                     color=["Polarity", "Subjectivity"])
+        st.plotly_chart(fig, use_container_width=True)
+
+    st.divider()
+    st.subheader("3. Next-Word Prediction (LSTM)")
+    seed = st.text_input("Seed text:", "she was")
+    n_words = st.slider("Words to generate", 1, 15, 5)
+    if st.button("Generate"):
+        with st.spinner("Generating..."):
+            out = predict_next_words(seed, n_words)
+        st.success(out)
